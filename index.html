@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#050605">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Project Munin: Local Gemma 3 4B neural field and emotional simulation interface.">
+<title>MUNIN // Neural Field Simulator</title>
+<style>
+:root{--bg:#050605;--fg:#e5ebdb;--muted:#849083;--line:rgba(199,222,171,.22);--gold:#e8ee8d;--live:#dfff87}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+#scene{position:fixed;inset:0}canvas{display:block;width:100%;height:100%;outline:none}
+.hud{position:fixed;inset:0;pointer-events:none;padding:clamp(12px,2.2vw,28px);text-transform:uppercase;letter-spacing:.12em;font-size:clamp(9px,.78vw,12px);text-shadow:0 0 11px rgba(171,210,125,.2)}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;position:relative;z-index:3}.brand{font-size:clamp(13px,1.1vw,17px);font-weight:700;letter-spacing:.24em}.brand .mark{color:var(--gold)}.sub{font-size:.78em;color:var(--muted);margin-top:7px;letter-spacing:.18em}.telemetry{text-align:right;color:var(--muted);line-height:1.9;white-space:nowrap}.telemetry b{font-weight:500;color:#f1f3df}.telemetry .accent{color:var(--gold)}
+.corner{position:absolute;width:24px;height:24px;border-color:#d9f57c88;border-style:solid;opacity:.8}.tl{left:12px;top:12px;border-width:1px 0 0 1px}.tr{right:12px;top:12px;border-width:1px 1px 0 0}.bl{left:12px;bottom:12px;border-width:0 0 1px 1px}.br{right:12px;bottom:12px;border-width:0 1px 1px 0}
+.left-info{position:absolute;left:clamp(12px,2.2vw,28px);top:36%;line-height:2.05;color:var(--muted);letter-spacing:.11em}.left-info strong{font-weight:500;color:#eff2df}.left-info .accent{color:var(--gold)}.center-tag{position:absolute;left:50%;top:47%;transform:translate(145px,-70px);color:var(--gold);font-size:clamp(9px,.85vw,12px);white-space:nowrap;letter-spacing:.14em}.center-tag:before{content:"";position:absolute;width:86px;right:calc(100% + 12px);top:50%;height:1px;background:linear-gradient(90deg,transparent,var(--gold));opacity:.8}.center-tag small{display:block;color:#9ba690;margin-top:7px;font-size:.76em;letter-spacing:.11em}
+.module-panel{position:absolute;right:clamp(12px,2.2vw,28px);top:105px;width:clamp(165px,16vw,218px);pointer-events:auto;background:linear-gradient(145deg,rgba(10,14,10,.72),rgba(3,5,4,.45));border:1px solid rgba(177,205,149,.19);padding:11px 11px 10px;backdrop-filter:blur(5px)}.panel-head{display:flex;justify-content:space-between;align-items:center;color:#a4b29a;font-size:10px;letter-spacing:.17em;padding-bottom:9px;border-bottom:1px solid rgba(190,215,168,.16);margin-bottom:7px}.panel-head b{font-weight:500;color:var(--gold)}.module-grid{display:grid;grid-template-columns:1fr;gap:3px}.module{width:100%;display:flex;align-items:center;gap:8px;text-align:left;border:1px solid transparent;background:transparent;color:#8a9588;padding:7px 7px;cursor:pointer;font:inherit;letter-spacing:.06em;transition:background .16s,border-color .16s,color .16s;min-height:30px}.module:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.13);color:#edf1df}.module.active{color:#f4f5df;background:rgba(255,255,255,.055);border-color:color-mix(in srgb,var(--module-color) 48%,transparent);box-shadow:inset 2px 0 0 var(--module-color),0 0 14px color-mix(in srgb,var(--module-color) 13%,transparent)}.module-dot{flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:var(--module-color);opacity:.43;box-shadow:0 0 0 transparent}.module.active .module-dot{opacity:1;box-shadow:0 0 8px var(--module-color),0 0 16px color-mix(in srgb,var(--module-color) 70%,transparent);animation:dotPulse 1.1s steps(2,end) infinite}.module-name{flex:1;white-space:nowrap;font-size:10px}.module-state{font-size:9px;color:#697367}.module.active .module-state{color:var(--module-color)}@keyframes dotPulse{50%{opacity:.4}}
+.panel-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(190,215,168,.16)}.panel-action{padding:7px 5px;background:rgba(255,255,255,.025);border:1px solid rgba(175,198,157,.28);color:#bdc9b4;font:inherit;font-size:9px;letter-spacing:.11em;cursor:pointer}.panel-action:hover{border-color:var(--gold);color:var(--gold)}.panel-note{margin-top:8px;color:#697668;font-size:8px;letter-spacing:.06em;line-height:1.7}
+.bottom{position:absolute;left:clamp(12px,2.2vw,28px);right:clamp(12px,2.2vw,28px);bottom:clamp(14px,2.4vh,26px);display:grid;grid-template-columns:1fr minmax(150px,31%) 1fr;align-items:end;gap:18px}.readout{line-height:1.9;color:var(--muted)}.readout b{color:#edf0df;font-weight:500}.readout .green{color:var(--gold)}.wave{height:38px;position:relative;border-bottom:1px solid #b5d46a66}.wave svg{width:100%;height:100%;overflow:visible}.wave path{fill:none;stroke:var(--gold);stroke-width:1.2;filter:drop-shadow(0 0 3px #dfff62)}.wave-label{display:flex;justify-content:space-between;color:var(--muted);font-size:8px;margin-top:6px;letter-spacing:.12em}.status{text-align:right;line-height:1.9;color:var(--muted)}.status b{color:var(--gold);font-weight:500}.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#59634e;box-shadow:none;margin-right:7px}.dot.on{background:var(--live);box-shadow:0 0 9px var(--live);animation:dotPulse 1.3s steps(2,end) infinite}
+.scan{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(205,242,165,.018) 4px);mix-blend-mode:screen;opacity:.58}.vignette{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 47%,transparent 22%,rgba(0,0,0,.17) 68%,#020302 100%)}.hint{position:absolute;right:clamp(12px,2.2vw,28px);bottom:100px;color:#64705f;font-size:8px;letter-spacing:.1em;text-align:right}.no-webgl{position:fixed;inset:0;display:none;place-items:center;background:#050605;color:#e5ebdb;padding:30px;text-align:center;z-index:50}
+@media(max-width:760px){.hud{padding:12px;letter-spacing:.08em}.top{gap:8px}.brand{font-size:12px;letter-spacing:.16em}.sub{max-width:165px;line-height:1.5;font-size:8px}.telemetry{font-size:8px;line-height:1.7}.module-panel{top:auto;right:10px;bottom:100px;width:154px;padding:7px;background:rgba(5,8,6,.88);backdrop-filter:blur(8px)}.panel-head{font-size:9px;padding-bottom:6px;margin-bottom:4px}.module-grid{gap:0}.module{padding:4px 4px;min-height:23px;gap:6px}.module-name{font-size:8px}.module-state{font-size:8px}.panel-actions{margin-top:5px;padding-top:5px}.panel-action{font-size:8px;padding:6px 3px}.panel-note{font-size:7px;line-height:1.5}.left-info{top:100px;left:12px;font-size:8px;line-height:1.8;max-width:145px}.center-tag{left:50%;top:48%;transform:translate(12px,-45px);font-size:7px;white-space:normal;max-width:135px}.center-tag:before{width:24px}.bottom{left:12px;right:12px;bottom:12px;grid-template-columns:1fr 1fr;gap:8px}.wave{display:none}.status{font-size:7px}.readout{font-size:7px}.hint{display:none}}
+@media(max-height:520px){.module-panel{top:65px;max-height:calc(100vh - 150px);overflow:auto}.bottom{bottom:10px}.left-info{top:25%;font-size:8px}}
+
+html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+canvas{touch-action:none;cursor:grab}canvas:active{cursor:grabbing}
+.panel-head{cursor:pointer;-webkit-user-select:none}
+.panel-head b:after{content:" \25BE"}
+.module-panel.collapsed .module-grid,.module-panel.collapsed .panel-actions,.module-panel.collapsed .panel-note{display:none}
+.module-panel.collapsed .panel-head{border-bottom:0;margin-bottom:0;padding-bottom:0}
+.module-panel.collapsed .panel-head b:after{content:" \25B8"}
+@media(max-width:760px){
+ .hud{padding:max(22px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) max(22px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left))}
+ .left-info{left:22px;top:132px}.bottom{left:22px;right:22px}
+ .panel-head{letter-spacing:.08em}.panel-head span,.panel-head b{white-space:nowrap}
+ .sub{font-size:9px}.telemetry{font-size:9px}
+ .left-info{font-size:9px;max-width:150px}
+ .center-tag{font-size:9px;max-width:150px}
+ .module-panel{width:190px;right:max(14px,env(safe-area-inset-right));bottom:calc(100px + env(safe-area-inset-bottom));padding:8px}
+ .panel-head{font-size:10px;min-height:30px;padding-bottom:6px}
+ .module{min-height:36px;padding:6px 6px}
+ .module-name{font-size:10px}.module-state{font-size:9px}
+ .panel-action{font-size:10px;padding:10px 4px}
+ .panel-note{font-size:8px}
+ .bottom{bottom:max(22px,env(safe-area-inset-bottom))}.readout,.status{font-size:9px}
+}
+@media(hover:none){.module:hover{background:transparent;border-color:transparent;color:#8a9588}.module.active:hover{background:rgba(255,255,255,.055);color:#f4f5df;border-color:color-mix(in srgb,var(--module-color) 48%,transparent)}}
+@media(prefers-reduced-motion:reduce){.module.active .module-dot,.dot.on{animation:none}}
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<div class="no-webgl" id="errorBox">WebGL is not available or could not initialize. Try a recent Chrome/Edge browser with hardware acceleration enabled.</div>
+<div class="hud">
+  <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+  <header class="top">
+    <div><div class="brand">MUNIN <span class="mark">//</span> NEURAL FIELD</div><div class="sub">Project Munin · Gemma 3 4B parameter space</div></div>
+    <div class="telemetry">NODES <b id="nodeCount" class="accent">10,280</b> · EDGES <b id="synCount">--</b><br>VIS-CAM <b id="visionStatus" class="accent">STANDBY</b> · <span id="clock">00:00:00</span></div>
+  </header>
+  <div class="left-info">FIELD / 06<br><strong>NETWORK STATE</strong><br><span class="accent" id="networkState">● STANDBY</span><br>ACTIVITY (SIM.) <strong id="activity">0.0%</strong><br>CYCLE (SIM.) <strong id="latency">-- ms</strong><br>ACTIVE PATHS <strong id="activeCount">0 / 6</strong><br>MODEL <strong>GEMMA 3 · 4B</strong><br><strong id="paramMap">--</strong></div>
+  <div class="center-tag" id="centerTag">MUNIN.CORE / IDLE<small>VISUAL INTEGRATION · M-01</small></div>
+  <section class="module-panel" aria-label="Munin modules">
+    <div class="panel-head"><span>// MODULE POWER</span><b id="panelState">DORMANT</b></div>
+    <div class="module-grid">
+      <button class="module" data-module="vision" style="--module-color:#58e8e1" aria-pressed="false"><span class="module-dot"></span><span class="module-name">VISION / CAMERA</span><span class="module-state">OFF</span></button>
+      <button class="module" data-module="hearing" style="--module-color:#82b8ff" aria-pressed="false"><span class="module-dot"></span><span class="module-name">HEARING / WHISPER</span><span class="module-state">OFF</span></button>
+      <button class="module" data-module="voice" style="--module-color:#ffca7d" aria-pressed="false"><span class="module-dot"></span><span class="module-name">VOICE / PIPER</span><span class="module-state">OFF</span></button>
+      <button class="module" data-module="memory" style="--module-color:#d1a2ff" aria-pressed="false"><span class="module-dot"></span><span class="module-name">MEMORY / MOOD</span><span class="module-state">OFF</span></button>
+      <button class="module" data-module="executive" style="--module-color:#f4ed8a" aria-pressed="false"><span class="module-dot"></span><span class="module-name">EXECUTIVE CORE</span><span class="module-state">OFF</span></button>
+      <button class="module" data-module="body" style="--module-color:#9ce99b" aria-pressed="false"><span class="module-dot"></span><span class="module-name">BODY / TELEMETRY</span><span class="module-state">OFF</span></button>
+    </div>
+    <div class="panel-actions"><button class="panel-action" id="powerAll">POWER ALL</button><button class="panel-action" id="powerOff">ALL OFF</button></div>
+    <div class="panel-note">VISUAL MODULE TOGGLES ONLY<br>DRAG ROTATE · PINCH ZOOM · DOUBLE-TAP RESET</div>
+  </section>
+  <div class="hint">PROJECT MUNIN · EMOTIONAL SIMULATION INTERFACE</div>
+  <footer class="bottom">
+    <div class="readout">PULSES (SIM.) <b id="spk">0 / s</b><br>FOCUS <b class="green" id="focus">IDLE</b></div>
+    <div class="wave"><svg viewBox="0 0 500 50" preserveAspectRatio="none"><path id="wavePath" d=""></path></svg><div class="wave-label"><span>FIELD ACTIVITY</span><span>LAST 10 SEC</span></div></div>
+    <div class="status"><span class="dot" id="coreDot"></span><span id="coreStateText">CORE STANDBY</span><br>MODE <b id="modeText">IDLE / MONITOR</b></div>
+  </footer>
+  <div class="scan"></div><div class="vignette"></div>
+</div>
+<script type="module">
+let THREE = null;
+for (const u of [...(location.protocol.startsWith('http') ? ['./three.module.js'] : []),
+  'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js',
+  'https://unpkg.com/three@0.160.0/build/three.module.js',
+  'https://esm.sh/three@0.160.0']) {
+  try { THREE = await import(u); break; } catch (e) { console.debug('three.js source skipped:', u); }
+}
+
+const NODE_COUNT = 10280;
+const host = document.querySelector('#scene');
+let renderer;
+try {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x050605);
+  scene.fog = new THREE.FogExp2(0x050605, 0.105);
+  const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 100);
+  camera.position.set(0, 0, innerWidth <= 760 ? 9.4 : 8.1);
+  let prCap = Math.min(window.devicePixelRatio || 1, 2), perfAcc = 0, perfN = 0, lastFrameT = 0;
+  renderer = new THREE.WebGLRenderer({antialias:true, alpha:false, powerPreference:'high-performance'});
+  renderer.setPixelRatio(prCap);
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.92;
+  renderer.domElement.setAttribute('aria-label','Interactive high density Munin neural field');
+  host.appendChild(renderer.domElement);
+  renderer.domElement.addEventListener('webglcontextlost', e => e.preventDefault());
+  renderer.domElement.addEventListener('webglcontextrestored', () => location.reload());
+
+  scene.add(new THREE.AmbientLight(0x7d8977, 1.05));
+  const keyLight = new THREE.PointLight(0xdfff9a, 16, 13); keyLight.position.set(1.2, 2.1, 3.5); scene.add(keyLight);
+  const cyanLight = new THREE.PointLight(0x4be2dc, 0, 10); cyanLight.position.set(-2.6, 0.3, 2.0); scene.add(cyanLight);
+  const violetLight = new THREE.PointLight(0xb996ff, 0, 8); violetLight.position.set(2.6, -1.0, 1.0); scene.add(violetLight);
+  const root = new THREE.Group(); scene.add(root);
+  let userX = 0, userY = 0, velX = 0, velY = 0, dragging = false, corePulse = 0;
+
+  const regions = [
+    {id:'vision',label:'VISION / CAMERA',color:0x58e8e1,dir:new THREE.Vector3(-.82,.42,.85)},
+    {id:'hearing',label:'HEARING / WHISPER',color:0x82b8ff,dir:new THREE.Vector3(-.04,.94,.70)},
+    {id:'voice',label:'VOICE / PIPER',color:0xffca7d,dir:new THREE.Vector3(.80,.43,.82)},
+    {id:'memory',label:'MEMORY / MOOD',color:0xd1a2ff,dir:new THREE.Vector3(-.82,-.44,.68)},
+    {id:'executive',label:'EXECUTIVE CORE',color:0xf4ed8a,dir:new THREE.Vector3(.03,-.27,1.0)},
+    {id:'body',label:'BODY / TELEMETRY',color:0x9ce99b,dir:new THREE.Vector3(.76,-.59,.72)}
+  ];
+  regions.forEach((r,i)=>{r.index=i;r.dir.normalize();r.baseColor=new THREE.Color(r.color);r.active=false;r.phase=i*.83;r.nodeIndices=[];r.edgePairs=[];r.material=null;r.lines=null;r.mesh=null;r.light=null;r.hubs=[];});
+  const N = NODE_COUNT;
+  let seed = 73921;
+  function rand(){ seed=(seed*1664525+1013904223)>>>0; return seed/4294967296; }
+  const points = new Array(N);
+  const nodeRegion = new Uint8Array(N);
+  const nodeSizes = new Float32Array(N);
+  const nodePhases = new Float32Array(N);
+
+  for(let i=0;i<N;i++){
+    const y=1-2*(i+.5)/N;
+    const ring=Math.sqrt(1-y*y);
+    const a=i*2.399963229728653;
+    const scale=1.62*(.73+rand()*.43);
+    const p=new THREE.Vector3(Math.cos(a)*ring*scale,y*scale,Math.sin(a)*ring*scale);
+    p.x+=(rand()-.5)*.24; p.y+=(rand()-.5)*.24; p.z+=(rand()-.5)*.24;
+    points[i]=p;
+    nodeSizes[i]=.0038+Math.pow(rand(),4)*.014;
+    nodePhases[i]=rand()*Math.PI*2;
+    const d=p.clone().normalize(); let best=-Infinity,bestIndex=0;
+    for(let j=0;j<regions.length;j++){const s=d.dot(regions[j].dir);if(s>best){best=s;bestIndex=j;}}
+    nodeRegion[i]=bestIndex;
+    regions[bestIndex].nodeIndices.push(i);
+  }
+
+  const edges=[]; const edgeSet=new Set();
+  function addEdge(i,j){
+    if(j<0||j>=N||i===j)return;
+    const a=Math.min(i,j),b=Math.max(i,j),key=a*N+b;
+    if(edgeSet.has(key))return;
+    edgeSet.add(key);edges.push([a,b]);
+    if(nodeRegion[a]===nodeRegion[b])regions[nodeRegion[a]].edgePairs.push([a,b]);
+  }
+  for(let i=0;i<N;i++){
+    addEdge(i,i+1);addEdge(i,i+2);addEdge(i,i+3);
+    if(i%2===0)addEdge(i,i+7);
+    if(i%2===0)addEdge(i,(i+1+Math.floor(rand()*145))%N);
+    if(i%9===0)addEdge(i,Math.floor(rand()*N));
+    if(i%19===0)addEdge(i,(i+Math.floor(N*.23)+Math.floor(rand()*250))%N);
+  }
+  const basePos=new Float32Array(edges.length*6);
+  for(let e=0;e<edges.length;e++){const [a,b]=edges[e];basePos.set(points[a].toArray(),e*6);basePos.set(points[b].toArray(),e*6+3);}
+  const baseGeo=new THREE.BufferGeometry();baseGeo.setAttribute('position',new THREE.BufferAttribute(basePos,3));
+  const baseMat=new THREE.LineBasicMaterial({color:0x9eae91,transparent:true,opacity:.12,blending:THREE.NormalBlending,depthWrite:false});
+  root.add(new THREE.LineSegments(baseGeo,baseMat));
+
+  for(const r of regions){
+    const buf=new Float32Array(r.edgePairs.length*6);
+    r.edgePairs.forEach(([a,b],i)=>{buf.set(points[a].toArray(),i*6);buf.set(points[b].toArray(),i*6+3);});
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(buf,3));
+    const mat=new THREE.LineBasicMaterial({color:r.color,transparent:true,opacity:0,blending:THREE.NormalBlending,depthWrite:false});
+    const line=new THREE.LineSegments(geo,mat);line.visible=false;root.add(line);r.lines=line;
+    const sp=[];r.nodeIndices.forEach((idx,k)=>{if(k%6===0){const q=points[idx];sp.push(0,0,0,q.x,q.y,q.z);}});
+    const spGeo=new THREE.BufferGeometry();spGeo.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
+    r.spokes=new THREE.LineSegments(spGeo,new THREE.LineBasicMaterial({color:0x9eae91,transparent:true,opacity:.035,blending:THREE.AdditiveBlending,depthWrite:false}));
+    root.add(r.spokes);
+  }
+
+  const baseSphere=new THREE.SphereGeometry(1,7,6);
+  for(const r of regions){
+    const geo=baseSphere.clone();
+    const phases=new Float32Array(r.nodeIndices.length);
+    r.nodeIndices.forEach((idx,k)=>{phases[k]=nodePhases[idx];});
+    geo.setAttribute('aPhase',new THREE.InstancedBufferAttribute(phases,1));
+    const material=new THREE.MeshBasicMaterial({color:0x8a9480,transparent:true,opacity:.48,depthWrite:false,blending:THREE.NormalBlending,toneMapped:false});
+    const shaderUniforms={uTime:{value:0},uActive:{value:0}};
+    material.onBeforeCompile=(shader)=>{
+      shader.uniforms.uTime=shaderUniforms.uTime;
+      shader.uniforms.uActive=shaderUniforms.uActive;
+      shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float aPhase;\nuniform float uTime;\nuniform float uActive;\nvarying float vMuninPulse;');
+      shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nfloat muninWave = sin(uTime * 4.0 + aPhase);\ntransformed *= 1.0 + uActive * (0.11 + 0.09 * muninWave);\nvMuninPulse = mix(0.76, 0.69 + 0.31 * (0.5 + 0.5 * muninWave), uActive);');
+      shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying float vMuninPulse;');
+      shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb *= vMuninPulse;\ndiffuseColor.a *= vMuninPulse;');
+      material.userData.shader=shader;
+    };
+    const mesh=new THREE.InstancedMesh(geo,material,r.nodeIndices.length);mesh.frustumCulled=false;
+    const dummy=new THREE.Object3D();
+    r.nodeIndices.forEach((idx,k)=>{
+      dummy.position.copy(points[idx]);dummy.scale.setScalar(nodeSizes[idx]);dummy.updateMatrix();mesh.setMatrixAt(k,dummy.matrix);
+      const tint=.72+rand()*.28;mesh.setColorAt(k,new THREE.Color(tint,tint*(.98+rand()*.025),tint*(.84+rand()*.12)));
+    });
+    mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+    root.add(mesh);r.mesh=mesh;r.material=material;r.shaderUniforms=shaderUniforms;
+
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(.36,.0024,3,84),new THREE.MeshBasicMaterial({color:r.color,transparent:true,opacity:.055,blending:THREE.AdditiveBlending,depthWrite:false}));
+    ring.position.copy(r.dir.clone().multiplyScalar(1.71));ring.lookAt(ring.position.clone().add(r.dir));ring.scale.setScalar(.55);root.add(ring);r.ring=ring;
+    const light=new THREE.PointLight(r.color,0,2.9);light.position.copy(r.dir.clone().multiplyScalar(1.36));root.add(light);r.light=light;
+    for(let h=0;h<3;h++){
+      const idx=r.nodeIndices[Math.floor(rand()*r.nodeIndices.length)];const size=.025+rand()*.045;
+      const hub=new THREE.Mesh(new THREE.SphereGeometry(size,10,8),new THREE.MeshBasicMaterial({color:r.color,transparent:true,opacity:.13,blending:THREE.AdditiveBlending,depthWrite:false}));hub.position.copy(points[idx]);root.add(hub);
+      const halo=new THREE.Mesh(new THREE.SphereGeometry(size*2.4,10,8),new THREE.MeshBasicMaterial({color:r.color,transparent:true,opacity:.035,wireframe:true,blending:THREE.AdditiveBlending,depthWrite:false}));halo.position.copy(points[idx]);root.add(halo);
+      r.hubs.push({hub,halo,phase:rand()*Math.PI*2});
+    }
+  }
+  baseSphere.dispose();
+
+  const dustGeo=new THREE.BufferGeometry(),dust=[];
+  for(let i=0;i<1250;i++)dust.push((rand()-.5)*9,(rand()-.5)*6,(rand()-.5)*5);
+  dustGeo.setAttribute('position',new THREE.Float32BufferAttribute(dust,3));
+  const dustPts=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0xa6ba93,size:.0075,transparent:true,opacity:.25,depthWrite:false}));scene.add(dustPts);
+  for(let i=0;i<3;i++){
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(2.03+i*.17,.0018,3,180),new THREE.MeshBasicMaterial({color:0x91a985,transparent:true,opacity:.12,depthWrite:false}));
+    ring.rotation.set(.74+i*.49,.25+i*.56,.36);root.add(ring);
+  }
+
+  const SPOKE_GRAY=new THREE.Color(0x9eae91);
+  const core=new THREE.Group();root.add(core);
+  const softTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d'),gr=g.createRadialGradient(32,32,0,32,32,32);
+    gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.35,'rgba(255,255,255,.55)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
+  const CN=2200,cpos=new Float32Array(CN*3),lumps=[[0,0,0,1],[.13,.09,-.1,.62],[-.15,-.06,.11,.58],[.05,-.16,.13,.5],[-.06,.15,-.13,.52]];
+  for(let i=0;i<CN;i++){
+    const L=lumps[(i%7<3)?0:1+(i%4)],th=rand()*Math.PI*2,z=rand()*2-1,sx=Math.sqrt(1-z*z),rad=(.08+.34*Math.pow(rand(),.75))*L[3];
+    cpos[i*3]=L[0]+Math.cos(th)*sx*rad*1.08+(rand()-.5)*.05;
+    cpos[i*3+1]=L[1]+z*rad*.86+(rand()-.5)*.05;
+    cpos[i*3+2]=L[2]+Math.sin(th)*sx*rad*1.12+(rand()-.5)*.05;
+  }
+  const clines=[];
+  for(let i=0;i<CN;i++){let made=0;for(let k=0;k<14&&made<3;k++){const j=(i+1+Math.floor(rand()*160))%CN,dx=cpos[i*3]-cpos[j*3],dy=cpos[i*3+1]-cpos[j*3+1],dz=cpos[i*3+2]-cpos[j*3+2];
+    if(dx*dx+dy*dy+dz*dz<.05){clines.push(cpos[i*3],cpos[i*3+1],cpos[i*3+2],cpos[j*3],cpos[j*3+1],cpos[j*3+2]);made++;}}}
+  const cgeo=new THREE.BufferGeometry();cgeo.setAttribute('position',new THREE.BufferAttribute(cpos,3));
+  const coreDots=new THREE.Points(cgeo,new THREE.PointsMaterial({color:0xf4ed8a,size:.05,map:softTex,transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  const coreDots2=new THREE.Points(cgeo,new THREE.PointsMaterial({color:0xfff6b0,size:.014,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  const lgeo=new THREE.BufferGeometry();lgeo.setAttribute('position',new THREE.Float32BufferAttribute(clines,3));
+  const coreLines=new THREE.LineSegments(lgeo,new THREE.LineBasicMaterial({color:0xe8ee8d,transparent:true,opacity:.2,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  core.add(coreLines,coreDots,coreDots2);
+  window.muninCorePulse=(v=1)=>{corePulse=Math.min(1.5,corePulse+v);};
+  window.addEventListener('munin-token',()=>window.muninCorePulse(.35));
+  const active=new Set();const buttons=[...document.querySelectorAll('[data-module]')];
+  function syncUI(){
+    for(const b of buttons){const on=active.has(b.dataset.module);b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));b.querySelector('.module-state').textContent=on?'ON':'OFF';}
+    const count=active.size;
+    document.querySelector('#activeCount').textContent=`${count} / ${regions.length}`;
+    document.querySelector('#networkState').textContent=count?'● FIELD ACTIVE':'● STANDBY';
+    document.querySelector('#panelState').textContent=count?'POWERED':'DORMANT';
+    document.querySelector('#coreStateText').textContent=count?'CORE ONLINE':'CORE STANDBY';
+    document.querySelector('#coreDot').classList.toggle('on',count>0);
+    document.querySelector('#modeText').textContent=count?'ACTIVE / MONITOR':'IDLE / MONITOR';
+    document.querySelector('#visionStatus').textContent=active.has('vision')?'ACTIVE':'STANDBY';
+    document.querySelector('#focus').textContent=count?regions.filter(r=>active.has(r.id)).map(r=>r.id.toUpperCase()).join(' + '):'IDLE';
+    document.querySelector('#centerTag').innerHTML=count?`${regions.filter(r=>active.has(r.id)).length===1?regions.find(r=>active.has(r.id)).label:'MULTI-MODULE / ACTIVE'}<small>VISUAL STATE · PROJECT MUNIN</small>`:'MUNIN.CORE / IDLE<small>VISUAL INTEGRATION · M-01</small>';
+  }
+  buttons.forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.module;if(active.has(id))active.delete(id);else active.add(id);syncUI();}));
+  document.querySelector('#powerAll').addEventListener('click',()=>{regions.forEach(r=>active.add(r.id));syncUI();});
+  document.querySelector('#powerOff').addEventListener('click',()=>{active.clear();syncUI();});
+
+  const wave=document.querySelector('#wavePath');let startTime=performance.now();
+  function updateWave(t){let d='';const amp=active.size?1:.14;for(let i=0;i<=100;i++){const x=i*5;const y=25+(Math.sin(i*.25+t*2.1)*5+Math.sin(i*.071-t*1.4)*7)*amp+(rand()-.5)*(active.size?2.4:.6);d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)+' ';}wave.setAttribute('d',d);}
+  let lastWave=-1,lastTelemetry=-1;
+  function animate(now){
+    requestAnimationFrame(animate);
+    const t=(now-startTime)*.001;
+    if(lastFrameT){const dt=now-lastFrameT;if(dt<200){perfAcc+=dt;perfN++;}
+      if(perfN>=90){const avg=perfAcc/perfN;perfAcc=0;perfN=0;
+        if(avg>24&&prCap>1){prCap=Math.max(1,prCap-.25);renderer.setPixelRatio(prCap);renderer.setSize(innerWidth,innerHeight);}}}
+    lastFrameT=now;
+    if(!dragging){userY+=velY;userX+=velX;velY*=.93;velX*=.93;}
+    userX=Math.max(-1.1,Math.min(1.1,userX));
+    root.rotation.y=t*.073+userY;root.rotation.x=Math.sin(t*.18)*.055+userX;root.rotation.z=Math.sin(t*.11)*.025;
+    dustPts.rotation.y=-t*.009;
+    keyLight.intensity=active.size?17+Math.sin(t*1.9)*1.5:10.5+Math.sin(t*.8)*.5;
+    cyanLight.intensity=active.has('vision')?9+Math.sin(t*4.3)*4:0;
+    violetLight.intensity=active.has('memory')?5+Math.sin(t*2.4)*2:0;
+    let pulseSum=0;
+    for(const r of regions){
+      const on=active.has(r.id);const pulse=.5+.5*Math.sin(t*3.7+r.phase);pulseSum+=on?(.65+pulse*.35):0;
+      r.shaderUniforms.uTime.value=t;r.shaderUniforms.uActive.value=on?1:0;
+      r.material.color.copy(on?r.baseColor:new THREE.Color(0x737a6f));
+      if(on)r.material.color.multiplyScalar(.82+pulse*.62);
+      r.material.opacity=on?.82:.38;
+      r.lines.visible=on;r.lines.material.opacity=on?.22+pulse*.24:0;
+      r.spokes.material.color.copy(on?r.baseColor:SPOKE_GRAY);r.spokes.material.opacity=on?.14+pulse*.18:.035;
+      r.ring.material.opacity=on?.16+pulse*.20:.035;r.ring.scale.setScalar(on?.78+pulse*.18:.52);
+      r.light.intensity=on?.45+pulse*1.85:0;
+      for(const h of r.hubs){h.hub.material.opacity=on?.22+pulse*.46:.10;h.halo.material.opacity=on?.07+pulse*.12:.022;const s=on?1+.28*Math.sin(t*4.1+h.phase):.82;h.hub.scale.setScalar(s);}
+    }
+    if(Math.floor(t*3)!==lastTelemetry){lastTelemetry=Math.floor(t*3);const load=active.size?(18*active.size+Math.sin(t*1.7)*4+Math.sin(t*.41)*2):0;document.querySelector('#activity').textContent=Math.max(0,load).toFixed(1)+'%';document.querySelector('#spk').textContent=(active.size?Math.round(active.size*360+Math.sin(t*1.5)*70):0).toLocaleString()+' / s';document.querySelector('#latency').textContent=active.size?(6.8+Math.abs(Math.sin(t*.7))*2.3).toFixed(1)+' ms':'-- ms';}
+    if(Math.floor(t*2)!==lastWave){lastWave=Math.floor(t*2);updateWave(t);}
+    const sec=Math.floor(t);document.querySelector('#clock').textContent=[Math.floor(sec/3600),Math.floor(sec/60)%60,sec%60].map(v=>String(v).padStart(2,'0')).join(':');
+    {const act=active.size/regions.length,br=.5+.5*Math.sin(t*1.4);
+      corePulse*=.94;
+      core.rotation.y=t*.12;core.rotation.x=Math.sin(t*.21)*.12;
+      coreDots.material.size=.05*(1+.15*br+act*.35+corePulse*.5);
+      coreDots.material.opacity=.6+.2*br+act*.2+corePulse*.2;
+      coreLines.material.opacity=.14+.08*br+act*.22+corePulse*.25;}
+    renderer.render(scene,camera);
+  }
+  document.querySelector('#nodeCount').textContent=N.toLocaleString();
+  document.querySelector('#paramMap').textContent='1 NODE ≈ '+Math.round(4e9/N/1e3)+'K PARAMS';document.querySelector('#synCount').textContent=edges.length.toLocaleString();
+  updateWave(0);syncUI();requestAnimationFrame(animate);
+
+  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(prCap);});
+  const el = renderer.domElement, ptrs = new Map(), clampZ = z => THREE.MathUtils.clamp(z, .35, 40);
+  const defZ = camera.position.z; let pinch0 = 0, z0 = defZ, lastTap = 0;
+  el.addEventListener('pointerdown', e => {
+    el.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); z0 = camera.position.z; }
+    if (ptrs.size === 1) { const n = performance.now(); if (n - lastTap < 300) { camera.position.z = defZ; userX = userY = 0; } lastTap = n; }
+    dragging = true; velX = velY = 0;
+  });
+  el.addEventListener('pointermove', e => {
+    const p = ptrs.get(e.pointerId); if (!p) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+    if (ptrs.size === 1) { userY += dx * .0048; userX += dy * .0048; velY = dx * .0048; velX = dy * .0048; }
+    else if (ptrs.size === 2 && pinch0 > 0) { const [a, b] = [...ptrs.values()]; camera.position.z = clampZ(z0 * pinch0 / Math.max(1, Math.hypot(a.x - b.x, a.y - b.y))); velX = velY = 0; }
+  });
+  const release = e => { ptrs.delete(e.pointerId); pinch0 = 0; if (ptrs.size === 0) dragging = false; };
+  el.addEventListener('pointerup', release); el.addEventListener('pointercancel', release);
+  el.addEventListener('wheel', e => { camera.position.z = clampZ(camera.position.z * Math.exp(e.deltaY * .0016)); }, {passive: true});
+  const panel = document.querySelector('.module-panel');
+  if (matchMedia('(max-width:760px)').matches) panel.classList.add('collapsed');
+  document.querySelector('.panel-head').addEventListener('click', () => panel.classList.toggle('collapsed'));
+} catch(err) {
+  console.error(err);
+  if(!THREE)document.querySelector('#errorBox').textContent='3D engine could not load. Check your internet connection and reload.';
+  document.querySelector('#errorBox').style.display='grid';
+}
+</script>
+</body>
+</html>
